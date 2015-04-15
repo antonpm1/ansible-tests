@@ -1,0 +1,8 @@
+---
+region: eu-west-1
+key_name: access
+instance_type: t2.micro
+image: ami-30ff5c47
+wait: yes
+wait_timeout: 500
+group: webserver

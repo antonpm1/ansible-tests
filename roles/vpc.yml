@@ -1,0 +1,37 @@
+- hosts: localhost
+  connection: local
+  gather_facts: False
+  vars_files:
+    - /etc/ansible/pass/aws.yml
+
+  tasks:
+  - name: Create VPC
+    ec2_vpc:
+      vpc_id: ibu_vpc
+      aws_access_key: "{{ ec2_access_key }}"
+      aws_secret_key: "{{ ec2_secret_key }}"
+      state: present
+      cidr_block: 172.0.0.0/16
+      resource_tags: { "Environment":"Production" }
+      internet_gateway: True
+      region: eu-west-1
+      subnets:
+        - cidr: 172.0.1.0/24
+          az: eu-west-1a
+          resource_tags: { "Environment":"Production", "Tier":"Web" }
+        - cidr: 172.0.2.0/24
+          az: eu-west-1b
+          resource_tags: { "Environment":"Production", "Tier":"Web" }
+        - cidr: 172.0.3.0/24
+          az: eu-west-1c
+          resource_tags: { "Environment":"Production", "Tier":"Web" }
+      route_tables:
+        - subnets:
+            - 172.0.1.0/24
+            - 172.0.2.0/24
+            - 172.0.3.0/24
+          routes:
+            - dest: 0.0.0.0/0
+              gw: igw
+    register: vpc
+

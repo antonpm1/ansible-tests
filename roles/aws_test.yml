@@ -1,0 +1,49 @@
+#Test launch of Centos EC2 instance
+
+- hosts: aws-webservers
+  connection: local
+  gather_facts: False
+  vars_files:
+    - /etc/ansible/pass/aws.yml
+
+  tasks:
+  - name: Provision test t2 micro instance
+    ec2:
+      aws_access_key: "{{ ec2_access_key }}"
+      aws_secret_key: "{{ ec2_secret_key }}"
+      region: "{{ region }}"
+      key_name: "{{ key_name }}"
+      instance_type: "{{ instance_type }}"
+      image: "{{ image }}"
+      wait: "{{ wait }}"
+      wait_timeout: "{{ wait_timeout }}"
+      group: "{{ group }}"
+      instance_tags:
+          name: "{{ inventory_hostname }}" 
+          tier: web
+          env: prod
+      assign_public_ip: yes
+      vpc_subnet_id: "{{ vpc_subnet_id }}"
+
+    register: ec2         
+
+  - name: Add all instance public IPs to host group
+    add_host: hostname={{ item.public_ip }} groups=aws_webservers
+    with_items: ec2.instances
+
+  - name: Wait for SSH to come up
+    wait_for: host={{ item.public_dns_name }} port=22 delay=60 timeout=320 state=started
+    with_items: ec2.instances
+
+- hosts: aws_webservers
+
+  tasks:
+  - name: configure and deploy the webservers
+    yum: name={{ item }} state=present
+    with_items:
+    - httpd
+    - php
+    - python
+
+  - service: name=httpd state=started
+

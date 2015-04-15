@@ -1,0 +1,31 @@
+# Playbook to subscribe hosts to Spacewalk
+
+ - hosts: blog-webservers:database-servers:monitoring-server
+   gather_facts: False
+   vars_files:
+     - /etc/ansible/pass/aws.yml
+
+   tasks:
+   - name: Get yum repo file
+     get_url: url=http://ansible.antonpm.co.uk/pub/spacewalk-client.repo dest=/etc/yum.repos.d/ use_proxy=no 
+
+   - name: Install Spacewalk client tools cert
+     rpm_key: key=http://ansible.antonpm.co.uk/pub/RPM-GPG-KEY-spacewalk-2014
+
+   - name: Install Spacewalk client tools
+     yum: pkg={{item}} state=installed
+     with_items:
+      - rhn-client-tools
+      - rhn-check 
+      - rhn-setup 
+      - rhnsd 
+      - m2crypto 
+      - yum-rhn-plugin
+      - osad
+     yum: name=http://ansible.antonpm.co.uk/pub/rhn-org-trusted-ssl-cert-1.0-1.noarch.rpm state=present
+
+   - name: Subscribe to Spacewalk
+     rhn_register: activationkey=1-Centos6-x86_64 username=anton password={{ space_pass }} server_url=http://ansible.antonpm.co.uk/XMLRPC 
+
+   - name: Start OSAD
+     service: name=osad state=started enabled=yes
